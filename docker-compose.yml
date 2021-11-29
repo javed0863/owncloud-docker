@@ -1,0 +1,55 @@
+version: "3"
+
+volumes:
+  mysql-data:
+  mysql-config:
+  owncloud-data:
+
+services:
+  mariadb:
+    image: javed0863/mariadb
+    # container_name: db
+    restart: always
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Singapore
+      - MYSQL_ROOT_PASSWORD=owncloud
+      - MYSQL_DATABASE=owncloud
+      - MYSQL_USER=owncloud
+      - MYSQL_PASSWORD=owncloud
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-u", "root", "--password=owncloud"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - mysql-config:/config
+  
+  owncloud:
+    image: owncloud/server:${OWNCLOUD_VERSION}
+    # container_name: app
+    restart: always
+    ports:
+      - ${HTTP_PORT}:8080
+    depends_on:
+      - mariadb
+    environment:
+      - OWNCLOUD_DOMAIN=${OWNCLOUD_DOMAIN}
+      - OWNCLOUD_DB_TYPE=mysql
+      - OWNCLOUD_DB_NAME=owncloud
+      - OWNCLOUD_DB_USERNAME=owncloud
+      - OWNCLOUD_DB_PASSWORD=owncloud
+      - OWNCLOUD_DB_HOST=${DB_HOST}
+      - OWNCLOUD_ADMIN_USERNAME=${ADMIN_USERNAME}
+      - OWNCLOUD_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    healthcheck:
+      test: ["CMD", "/usr/bin/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - owncloud-data:/mnt/data
